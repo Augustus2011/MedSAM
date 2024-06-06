@@ -97,7 +97,7 @@ seg_info['name'] = []
 seg_info['running time'] = []
 
 
-img_path = 'images'
+img_path = 'image'
 marker_path = 'marker-expert1_interpolated'
 seg_path = 'medsam_seg_expert1'
 os.makedirs(seg_path, exist_ok=True)

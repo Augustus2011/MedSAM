@@ -73,7 +73,6 @@ names = [name for name in names if name.endswith('.nii.gz')]
 for name in names:
     nii = sitk.ReadImage(join(marker_dir, name))
     marker_data = np.uint8(sitk.GetArrayFromImage(nii))
-    # simulate bounding box based on marker
     box_data = np.zeros_like(marker_data, dtype=np.uint8)
     label_ids = np.unique(marker_data)[1:]
     print(f'label ids: {label_ids}')

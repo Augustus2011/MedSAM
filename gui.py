@@ -44,7 +44,7 @@ torch.cuda.manual_seed(2023)
 np.random.seed(2023)
 
 SAM_MODEL_TYPE = "vit_b"
-MedSAM_CKPT_PATH = "work_dir/MedSAM/medsam_vit_b.pth"
+MedSAM_CKPT_PATH = "/Users/kunkerdthaisong/intern_cariva/MedSAM/extensions/seg_3dnii_sparse_marker/medsam_vit_b.pth"
 MEDSAM_IMG_INPUT_SIZE = 1024
 
 if torch.backends.mps.is_available():
