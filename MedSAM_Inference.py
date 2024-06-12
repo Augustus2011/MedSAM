@@ -12,9 +12,7 @@ import torch.nn.functional as F
 import argparse
 
 
-# visualization functions
-# source: https://github.com/facebookresearch/segment-anything/blob/main/notebooks/predictor_example.ipynb
-# change color to avoid red and green
+
 def show_mask(mask, ax, random_color=False):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
@@ -94,13 +92,22 @@ parser.add_argument(
     "-chk",
     "--checkpoint",
     type=str,
-    default="work_dir/MedSAM/medsam_vit_b.pth",
+    default="work_dir/MedSAM-ViT-B-20240612-1446/medsam_model_best.pth",
     help="path to the trained model",
 )
+parser.add_argument("-model_type", type=str, default="vit_t")
+parser.add_argument("-image_size", type=int, default=1024)
+parser.add_argument("-if_encoder_adapter",type=bool,default=True)
+parser.add_argument('-encoder-adapter-depths', type=list, default=[0,1,10,11] , help='the depth of blocks to add adapter')
+parser.add_argument('-encoder_depth_layer', type=list, default=[0,1,2,3], help='the layer of the depth adapter')
+parser.add_argument('-thd', type=bool, default=False , help='3d or not')
+parser.add_argument('-decoder_adapt_depth', type=int, default=2, help='the depth of the decoder adapter')
+parser.add_argument('-if_mask_decoder_adapter', type=bool, default=False , help='if add adapter to mask decoder')
 args = parser.parse_args()
 
 device = args.device
-medsam_model = sam_model_registry["vit_b"](checkpoint=args.checkpoint)
+device="cuda"if torch.cuda.is_available()else"cpu"
+medsam_model = sam_model_registry[args.model_type](args=args,checkpoint=args.checkpoint)
 medsam_model = medsam_model.to(device)
 medsam_model.eval()
 

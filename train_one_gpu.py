@@ -151,9 +151,9 @@ parser.add_argument(
     help="path to training npy files; two subfolders: gts and imgs",
 )
 parser.add_argument("-task_name", type=str, default="MedSAM-ViT-B")
-parser.add_argument("-model_type", type=str, default="vit_b")
+parser.add_argument("-model_type", type=str, default="vit_t")
 parser.add_argument(
-    "-checkpoint", type=str, default="work_dir/SAM/sam_vit_b_01ec64.pth"
+    "-checkpoint", type=str, default=None
 )
 # parser.add_argument('-device', type=str, default='cuda:0')
 parser.add_argument(
@@ -165,7 +165,14 @@ parser.add_argument("-work_dir", type=str, default="./work_dir")
 parser.add_argument("-num_epochs", type=int, default=1000)
 parser.add_argument("-batch_size", type=int, default=2)
 parser.add_argument("-num_workers", type=int, default=0)
-# Optimizer parameters
+parser.add_argument("-image_size", type=int, default=1024)
+parser.add_argument("-if_encoder_adapter",type=bool,default=True)
+parser.add_argument('-encoder-adapter-depths', type=list, default=[0,1,10,11] , help='the depth of blocks to add adapter')
+parser.add_argument('-encoder_depth_layer', type=list, default=[0,1,2,3], help='the layer of the depth adapter')
+parser.add_argument('-thd', type=bool, default=False , help='3d or not')
+parser.add_argument('-decoder_adapt_depth', type=int, default=2, help='the depth of the decoder adapter')
+parser.add_argument('-if_mask_decoder_adapter', type=bool, default=False , help='if add adapter to mask decoder')
+    
 parser.add_argument(
     "-weight_decay", type=float, default=0.01, help="weight decay (default: 0.01)"
 )
@@ -175,7 +182,7 @@ parser.add_argument(
 parser.add_argument(
     "-use_wandb", type=bool, default=False, help="use wandb to monitor training"
 )
-parser.add_argument("-use_amp", action="store_true", default=False, help="use amp")
+parser.add_argument("-use_amp", action="store_true", default=True, help="use amp")
 parser.add_argument(
     "--resume", type=str, default="", help="Resuming training from checkpoint"
 )
@@ -201,6 +208,7 @@ if args.use_wandb:
 run_id = datetime.now().strftime("%Y%m%d-%H%M")
 model_save_path = join(args.work_dir, args.task_name + "-" + run_id)
 device = torch.device(args.device)
+device="cuda"if torch.cuda.is_available() else "cpu"
 # %% set up model
 
 
@@ -254,7 +262,7 @@ def main():
         __file__, join(model_save_path, run_id + "_" + os.path.basename(__file__))
     )
 
-    sam_model = sam_model_registry[args.model_type](checkpoint=args.checkpoint)
+    sam_model = sam_model_registry[args.model_type](args=args,checkpoint=args.checkpoint)
     medsam_model = MedSAM(
         image_encoder=sam_model.image_encoder,
         mask_decoder=sam_model.mask_decoder,

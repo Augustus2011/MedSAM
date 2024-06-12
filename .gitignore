@@ -12,6 +12,9 @@
 data/
 work_dir/
 *.pth
+*.png
+*.jpg
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
