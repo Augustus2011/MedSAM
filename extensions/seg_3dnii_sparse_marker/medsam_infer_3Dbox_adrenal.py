@@ -109,7 +109,7 @@ for name in tqdm(names):
     img_name = name.split('.nii.gz')[0] + '_0000.nii.gz'
     img_sitk = sitk.ReadImage(join(img_path, img_name))
     image_data = sitk.GetArrayFromImage(img_sitk)
-    # adjust window level and window width
+    
     image_data_pre = image_data.astype(np.float32) # np.clip(image_data, -160.0, 240.0)
     image_data_pre = (image_data_pre - np.min(image_data_pre))/(np.max(image_data_pre)-np.min(image_data_pre))*255.0
     image_data_pre = np.uint8(image_data_pre)
@@ -134,11 +134,7 @@ for name in tqdm(names):
         z_min = min(bbox_dict.keys())
         z_max = max(bbox_dict.keys())
         z_middle_bbox = bbox_dict[z_middle]
-        # sanity check
-        # img_roi = image_data_pre[z_middle, z_middle_bbox[1]:z_middle_bbox[3], z_middle_bbox[0]:z_middle_bbox[2]]
-        # io.imsave(name.split('.nii.gz')[0] + '_roi.png', img_roi)
-
-        # infer from middle slice to the z_max
+        
         print('infer', name, 'from middle slice to the z_max')
         for z in tqdm(range(z_middle, z_max+1)): # include z_max
             img_2d = image_data_pre[z, :, :]
@@ -173,7 +169,7 @@ for name in tqdm(names):
             img_2d_seg = medsam_inference(medsam_model, image_embedding, box_1024[None,:], H, W)
             seg_data[z, img_2d_seg>0] = 1
 
-        # infer from middle slice to the z_max
+
         print('infer', name, 'from middle slice to the z_min')
         for z in tqdm(range(z_middle-1, z_min-1, -1)):
             img_2d = image_data_pre[z, :, :]
@@ -213,9 +209,10 @@ for name in tqdm(names):
     sitk.WriteImage(seg_sitk, join(seg_path, name))
     end_time = time.time()
 
-    # save bounding box info
+    # save bounding box info 
     seg_info['name'].append(name)
     seg_info['running time'].append(end_time - start_time)
+
 
 # save bbox info
 seg_df = pd.DataFrame(seg_info)
