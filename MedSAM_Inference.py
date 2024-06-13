@@ -11,6 +11,11 @@ from skimage import io, transform
 import torch.nn.functional as F
 import argparse
 
+
+
+import pydicom
+
+
 def show_mask(mask, ax, random_color=False):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
@@ -62,6 +67,8 @@ def medsam_inference(medsam_model, img_embed, box_1024, H, W):
 
 
 # %% load model and image
+
+
 parser = argparse.ArgumentParser(
     description="run inference on testing set based on MedSAM"
 )
@@ -69,7 +76,7 @@ parser.add_argument(
     "-i",
     "--data_path",
     type=str,
-    default="assets/img_demo.png",
+    default="/Users/kunkerdthaisong/intern_cariva/MedSAM/stage_2_train_images/000db696-cf54-4385-b10b-6b16fbb3f985.dcm",
     help="path to the data folder",
 )
 parser.add_argument(
@@ -79,10 +86,12 @@ parser.add_argument(
     default="assets/",
     help="path to the segmentation folder",
 )
+
+
 parser.add_argument(
     "--box",
     type=list,
-    default=[95, 255, 190, 350],
+    default=[370,370,370+430,370+431],
     help="bounding box of the segmentation target",
 )
 parser.add_argument("--device", type=str, default="cuda:0", help="device")
@@ -90,12 +99,13 @@ parser.add_argument(
     "-chk",
     "--checkpoint",
     type=str,
-    default="work_dir/MedSAM-ViT-B-20240612-1446/medsam_model_best.pth",
+    default="/Users/kunkerdthaisong/intern_cariva/MedSAM/medsam_vit_b.pth",
     help="path to the trained model",
 )
-parser.add_argument("-model_type", type=str, default="vit_t")
+parser.add_argument("-model_type", type=str, default="vit_b")
 parser.add_argument("-image_size", type=int, default=1024)
-parser.add_argument("-if_encoder_adapter",type=bool,default=True)
+
+parser.add_argument("-if_encoder_adapter",type=bool,default=False)
 parser.add_argument('-encoder-adapter-depths', type=list, default=[0,1,10,11] , help='the depth of blocks to add adapter')
 parser.add_argument('-encoder_depth_layer', type=list, default=[0,1,2,3], help='the layer of the depth adapter')
 parser.add_argument('-thd', type=bool, default=False , help='3d or not')
@@ -105,11 +115,19 @@ args = parser.parse_args()
 
 device = args.device
 device="cuda"if torch.cuda.is_available()else"cpu"
-medsam_model = sam_model_registry[args.model_type](args=args,checkpoint=args.checkpoint)
+
+if args.model_type=="vit_t":
+    medsam_model = sam_model_registry["vit_b"](args=args,checkpoint=None)
+else:
+    medsam_model=sam_model_registry[args.model_type](checkpoint=args.checkpoint)
+
 medsam_model = medsam_model.to(device)
 medsam_model.eval()
 
-img_np = io.imread(args.data_path)
+#img_np = io.imread(args.data_path)
+
+img_np=pydicom.dcmread(args.data_path).pixel_array
+
 if len(img_np.shape) == 2:
     img_3c = np.repeat(img_np[:, :, None], 3, axis=-1)
 else:
@@ -135,18 +153,18 @@ with torch.no_grad():
 
 medsam_seg = medsam_inference(medsam_model, image_embedding, box_1024, H, W)
 io.imsave(
-    join(args.seg_path, "seg_" + os.path.basename(args.data_path)),
+    join(args.seg_path, "seg_" + os.path.basename(args.data_path).split(".")[0]+".png"),
     medsam_seg,
     check_contrast=False,
 )
 
 # %% visualize results
-fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-ax[0].imshow(img_3c)
-show_box(box_np[0], ax[0])
-ax[0].set_title("Input Image and Bounding Box")
-ax[1].imshow(img_3c)
-show_mask(medsam_seg, ax[1])
-show_box(box_np[0], ax[1])
-ax[1].set_title("MedSAM Segmentation")
+fig, ax = plt.subplots(1, figsize=(10, 5)) #1,2
+#ax[0].imshow(img_3c)
+#show_box(box_np[0], ax[0])
+#ax[0].set_title("Input Image and Bounding Box")
+ax.imshow(img_3c)  #ax[0]
+show_mask(medsam_seg, ax) #ax[1]
+show_box(box_np[0], ax)
+ax.set_title("MedSAM Segmentation")
 plt.show()

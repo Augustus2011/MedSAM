@@ -16,13 +16,13 @@ from .common import MLPBlock, Adapter
 class TwoWayTransformer(nn.Module):
     def __init__(
         self,
-        args,
         depth: int,
         embedding_dim: int,
         num_heads: int,
         mlp_dim: int,
         activation: Type[nn.Module] = nn.ReLU,
         attention_downsample_rate: int = 2,
+        if_adapter=False,
     ) -> None:
         """
         A transformer decoder that attends to an input image using
@@ -37,26 +37,22 @@ class TwoWayTransformer(nn.Module):
           activation (nn.Module): the activation to use in the MLP block
         """
         super().__init__()
-        self.args = args
         self.depth = depth
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
         self.mlp_dim = mlp_dim
         self.layers = nn.ModuleList()
+        self.if_adapter=False
         for i in range(depth):
-            if i<args.decoder_adapt_depth:
-                if_adapter = args.if_mask_decoder_adapter
-            else:
-                if_adapter = False
+            
             self.layers.append(
                 TwoWayAttentionBlock(
-                    args = self.args,
                     embedding_dim=embedding_dim,
                     num_heads=num_heads,
                     mlp_dim=mlp_dim,
                     activation=activation,
                     attention_downsample_rate=attention_downsample_rate,
-                    if_adapter = if_adapter,
+                    if_adapter =self.if_adapter,
                     skip_first_layer_pe=(i == 0),
                 )
             )
@@ -72,19 +68,6 @@ class TwoWayTransformer(nn.Module):
         image_pe: Tensor,
         point_embedding: Tensor,
     ) -> Tuple[Tensor, Tensor]:
-        """
-        Args:
-          image_embedding (torch.Tensor): image to attend to. Should be shape
-            B x embedding_dim x h x w for any h and w.
-          image_pe (torch.Tensor): the positional encoding to add to the image. Must
-            have the same shape as image_embedding.
-          point_embedding (torch.Tensor): the embedding to add to the query points.
-            Must have shape B x N_points x embedding_dim for any N_points.
-
-        Returns:
-          torch.Tensor: the processed point_embedding
-          torch.Tensor: the processed image_embedding
-        """
         # BxCxHxW -> BxHWxC == B x N_image_tokens x C
         bs, c, h, w = image_embedding.shape
         image_embedding = image_embedding.flatten(2).permute(0, 2, 1)
@@ -116,7 +99,6 @@ class TwoWayTransformer(nn.Module):
 class TwoWayAttentionBlock(nn.Module):
     def __init__(
         self,
-        args,
         embedding_dim: int,
         num_heads: int,
         mlp_dim: int = 2048,
@@ -139,7 +121,6 @@ class TwoWayAttentionBlock(nn.Module):
           skip_first_layer_pe (bool): skip the PE on the first layer
         """
         super().__init__()
-        self.args = args
         self.if_adapter = if_adapter
         self.self_attn = Attention(embedding_dim, num_heads)
         self.norm1 = nn.LayerNorm(embedding_dim)

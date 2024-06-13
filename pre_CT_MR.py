@@ -144,7 +144,7 @@ for name in tqdm(names[:40]):  # use the remaining 10 cases for validation
             )
             resize_img_skimg_01 = (resize_img_skimg - resize_img_skimg.min()) / np.clip(
                 resize_img_skimg.max() - resize_img_skimg.min(), a_min=1e-8, a_max=None
-            )  # normalize to [0, 1], (H, W, 3)
+            )
             gt_i = gt_roi[i, :, :]
             resize_gt_skimg = transform.resize(
                 gt_i,
